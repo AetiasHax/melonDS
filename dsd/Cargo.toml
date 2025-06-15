@@ -1,0 +1,16 @@
+[package]
+name = "dsd-melonds"
+version = "0.1.0"
+edition = "2021"
+
+[lib]
+crate-type = ["staticlib"]
+name = "dsd_melonds_rs"
+
+[dependencies]
+anyhow = "1.0"
+cxx = "1.0"
+ds-decomp = "0.9"
+
+[build-dependencies]
+cxx-build = "1.0"

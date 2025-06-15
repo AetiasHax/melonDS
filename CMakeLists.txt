@@ -101,6 +101,9 @@ endif()
 
 option(BUILD_QT_SDL "Build Qt/SDL frontend" ON)
 
+include_directories(${CMAKE_BINARY_DIR}/dsd)
+add_subdirectory(dsd)
+
 add_subdirectory(src)
 
 if (BUILD_QT_SDL)

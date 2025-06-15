@@ -210,3 +210,4 @@ endif()
 #  )
 #endif()
 
+target_link_libraries(core PRIVATE dsd_melonds)
