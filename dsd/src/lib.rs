@@ -1,4 +1,6 @@
+pub mod overlay;
 pub mod relocs;
+use overlay::*;
 use relocs::*;
 
 #[cxx::bridge]
@@ -26,8 +28,15 @@ mod ffi {
         pub kind: RelocationKind,
     }
 
+    struct OverlayLoadFunctions {
+        pub load: u32,
+        pub unload: u32,
+    }
+
     extern "Rust" {
         fn dsd_get_ambiguous_relocations(config_path: &str) -> Result<Vec<AmbiguousRelocation>>;
+
+        fn dsd_get_overlay_load_functions(config_path: &str) -> Result<OverlayLoadFunctions>;
 
         fn dsd_melonds_init() -> u32;
     }
