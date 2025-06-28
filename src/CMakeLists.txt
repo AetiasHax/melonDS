@@ -56,6 +56,8 @@ add_library(core STATIC
     Utils.h
     Wifi.cpp
     WifiAP.cpp
+    
+    DSD.cpp
 
     fatfs/ff.c
     fatfs/ffsystem.c

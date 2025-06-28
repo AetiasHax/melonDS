@@ -75,6 +75,7 @@
 #include "Savestate.h"
 #include "MPInterface.h"
 #include "LANDialog.h"
+#include "DSD.h"
 
 //#include "main_shaders.h"
 
@@ -384,6 +385,10 @@ MainWindow::MainWindow(int id, EmuInstance* inst, QWidget* parent) :
             {
                 QDesktopServices::openUrl(QUrl::fromLocalFile(emuDirectory));
             });
+
+            menu->addSeparator();
+            actOpenDsdConfig = menu->addAction("Open dsd config");
+            connect(actOpenDsdConfig, &QAction::triggered, this, &MainWindow::onOpenDsdConfig);
 
             menu->addSeparator();
 
@@ -1641,6 +1646,16 @@ void MainWindow::onImportSavefile()
         QMessageBox::critical(this, "melonDS", "Could not import the given savefile.");
         return;
     }
+}
+
+void MainWindow::onOpenDsdConfig()
+{
+    QString path = QFileDialog::getOpenFileName(this,
+                                            "Select dsd config file",
+                                            globalCfg.GetQString("LastDsdFolder"),
+                                            "dsd config (*.yaml *.yml)");
+
+    this->emuInstance->nds->InitDsd(path.toUtf8());
 }
 
 void MainWindow::onQuit()

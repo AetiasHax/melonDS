@@ -42,6 +42,7 @@
 #include "CRC32.h"
 #include "DMA.h"
 #include "FreeBIOS.h"
+#include "DSD.h"
 
 // when touching the main loop/timing code, pls test a lot of shit
 // with this enabled, to make sure it doesn't desync
@@ -550,6 +551,11 @@ public:
 protected:
     explicit NDS(NDSArgs&& args, int type, void* userdata) noexcept;
     virtual void DoSavestateExtra(Savestate* file) {}
+
+private:
+    DSD *dsd;
+public:
+    void InitDsd(const char *configPath);
 };
 
 }

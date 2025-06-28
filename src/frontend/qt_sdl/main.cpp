@@ -269,17 +269,8 @@ bool MelonApplication::event(QEvent *event)
     return QApplication::event(event);
 }
 
-#include "dsd_melonds.h"
-#include <chrono>
-
 int main(int argc, char** argv)
 {
-    auto start = std::chrono::high_resolution_clock::now();
-    uint32_t result = dsd_melonds_init();
-    auto end = std::chrono::high_resolution_clock::now();
-    auto duration = std::chrono::duration_cast<std::chrono::nanoseconds>(end - start).count();
-    printf("dsd_melonds_init took %lld ns\n with result: %u", duration, result);
-
     sysTimer.start();
     srand(time(nullptr));
 

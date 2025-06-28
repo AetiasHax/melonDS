@@ -170,6 +170,7 @@ private slots:
     void onLoadState();
     void onUndoStateLoad();
     void onImportSavefile();
+    void onOpenDsdConfig();
     void onQuit();
 
     void onPause(bool checked);
@@ -296,6 +297,7 @@ public:
     QAction* actLoadState[9];
     QAction* actUndoStateLoad;
     QAction* actOpenConfig;
+    QAction* actOpenDsdConfig;
     QAction* actQuit;
 
     QAction* actPause;
