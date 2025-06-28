@@ -552,7 +552,7 @@ protected:
     explicit NDS(NDSArgs&& args, int type, void* userdata) noexcept;
     virtual void DoSavestateExtra(Savestate* file) {}
 
-private:
+public:
     DSD *dsd;
 public:
     void InitDsd(const char *configPath);

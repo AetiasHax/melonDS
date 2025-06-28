@@ -18,6 +18,28 @@ DSD::DSD(const char *path) : ambiguousRelocations(std::move(dsd_get_ambiguous_re
     }
 }
 
+void DSD::OverlayLoaded(uint32_t id)
+{
+    this->loadedOverlays.insert(id);
+    PrintLoadedOverlays();
+}
+
+void DSD::OverlayUnloaded(uint32_t id)
+{
+    this->loadedOverlays.erase(id);
+    PrintLoadedOverlays();
+}
+
+void DSD::PrintLoadedOverlays()
+{
+    printf("Loaded overlays: ");
+    for (const uint32_t id : this->loadedOverlays)
+    {
+        printf("%d ", id);
+    }
+    printf("\n");
+}
+
 void melonDS::NDS::InitDsd(const char *configPath)
 {
     dsd = new DSD(configPath);
