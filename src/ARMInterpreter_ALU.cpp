@@ -385,7 +385,8 @@ A_IMPLEMENT_ALU_OP(EOR,_S)
     else \
     { \
         cpu->R[(cpu->CurInstr>>12) & 0xF] = res; \
-    }
+    } \
+    cpu->NDS.dsd.ProcessedData((cpu->CurInstr>>12) & 0xF, (cpu->CurInstr>>16) & 0xF, -(s32)b);
 
 #define A_SUB_S(c) \
     u32 a = cpu->R[(cpu->CurInstr>>16) & 0xF]; \
@@ -402,7 +403,8 @@ A_IMPLEMENT_ALU_OP(EOR,_S)
     else \
     { \
         cpu->R[(cpu->CurInstr>>12) & 0xF] = res; \
-    }
+    } \
+    cpu->NDS.dsd.ProcessedData((cpu->CurInstr>>12) & 0xF, (cpu->CurInstr>>16) & 0xF, -(s32)b);
 
 A_IMPLEMENT_ALU_OP(SUB,)
 
@@ -418,6 +420,10 @@ A_IMPLEMENT_ALU_OP(SUB,)
     else \
     { \
         cpu->R[(cpu->CurInstr>>12) & 0xF] = res; \
+    } \
+    if (cpu->CurInstr & 0x0e000ff0 == 0x00000000) /* RSB by non-shifted register Rm */ \
+    { \
+        cpu->NDS.dsd.ProcessedData((cpu->CurInstr>>12) & 0xF, cpu->CurInstr & 0xF, -(s32)a); \
     }
 
 #define A_RSB_S(c) \
@@ -435,6 +441,10 @@ A_IMPLEMENT_ALU_OP(SUB,)
     else \
     { \
         cpu->R[(cpu->CurInstr>>12) & 0xF] = res; \
+    } \
+    if (cpu->CurInstr & 0x0e000ff0 == 0x00000000) /* RSB by non-shifted register Rm */ \
+    { \
+        cpu->NDS.dsd.ProcessedData((cpu->CurInstr>>12) & 0xF, cpu->CurInstr & 0xF, -(s32)a); \
     }
 
 A_IMPLEMENT_ALU_OP(RSB,)
@@ -451,6 +461,11 @@ A_IMPLEMENT_ALU_OP(RSB,)
     else \
     { \
         cpu->R[(cpu->CurInstr>>12) & 0xF] = res; \
+    } \
+    cpu->NDS.dsd.ProcessedData((cpu->CurInstr>>12) & 0xF, (cpu->CurInstr>>16) & 0xF, (s32)b); \
+    if (cpu->CurInstr & 0x0e000ff0 == 0x00000000) /* ADD by non-shifted register Rm */ \
+    { \
+        cpu->NDS.dsd.ProcessedData((cpu->CurInstr>>12) & 0xF, cpu->CurInstr & 0xF, (s32)a); \
     }
 
 #define A_ADD_S(c) \
@@ -468,6 +483,11 @@ A_IMPLEMENT_ALU_OP(RSB,)
     else \
     { \
         cpu->R[(cpu->CurInstr>>12) & 0xF] = res; \
+    } \
+    cpu->NDS.dsd.ProcessedData((cpu->CurInstr>>12) & 0xF, (cpu->CurInstr>>16) & 0xF, (s32)b); \
+    if (cpu->CurInstr & 0x0e000ff0 == 0x00000000) /* ADD by non-shifted register Rm */ \
+    { \
+        cpu->NDS.dsd.ProcessedData((cpu->CurInstr>>12) & 0xF, cpu->CurInstr & 0xF, (s32)a); \
     }
 
 A_IMPLEMENT_ALU_OP(ADD,)
@@ -662,7 +682,8 @@ A_IMPLEMENT_ALU_OP(ORR,_S)
     else \
     { \
         cpu->R[(cpu->CurInstr>>12) & 0xF] = b; \
-    }
+    } \
+    cpu->NDS.dsd.ProcessedData((cpu->CurInstr>>12) & 0xF, cpu->CurInstr & 0xF, 0);
 
 #define A_MOV_S(c) \
     cpu->SetNZ(b & 0x80000000, \
@@ -675,7 +696,8 @@ A_IMPLEMENT_ALU_OP(ORR,_S)
     else \
     { \
         cpu->R[(cpu->CurInstr>>12) & 0xF] = b; \
-    }
+    } \
+    cpu->NDS.dsd.ProcessedData((cpu->CurInstr>>12) & 0xF, cpu->CurInstr & 0xF, 0);
 
 A_IMPLEMENT_ALU_OP(MOV,_S)
 

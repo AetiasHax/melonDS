@@ -416,6 +416,7 @@ void A_LDM(ARM* cpu)
     u32 baseid = (cpu->CurInstr >> 16) & 0xF;
     cpu->NDS.dsd.RegisterDereferenced(baseid);
     u32 base = cpu->R[baseid];
+    u32 oldbase = base;
     u32 wbbase;
     u32 preinc = (cpu->CurInstr & (1<<24));
     bool first = true;
@@ -478,11 +479,17 @@ void A_LDM(ARM* cpu)
             {
                 u32 rlist = cpu->CurInstr & 0xFFFF;
                 if ((!(rlist & ~(1 << baseid))) || (rlist & ~((2 << baseid) - 1)))
+                {
                     cpu->R[baseid] = wbbase;
+                    cpu->NDS.dsd.ProcessedData(baseid, baseid, (s32) wbbase - (s32) oldbase);
+                }
             }
         }
         else
+        {
             cpu->R[baseid] = wbbase;
+            cpu->NDS.dsd.ProcessedData(baseid, baseid, (s32) wbbase - (s32) oldbase);
+        }
     }
 
     if ((cpu->CurInstr & (1<<22)) && !(cpu->CurInstr & (1<<15)))
@@ -555,7 +562,10 @@ void A_STM(ARM* cpu)
         cpu->UpdateMode((cpu->CPSR&~0x1F)|0x10, cpu->CPSR, true);
 
     if ((cpu->CurInstr & (1<<23)) && (cpu->CurInstr & (1<<21)))
+    {
         cpu->R[baseid] = base;
+        cpu->NDS.dsd.ProcessedData(baseid, baseid, (s32) base - (s32) oldbase);
+    }
 
     cpu->AddCycles_CD();
 }
