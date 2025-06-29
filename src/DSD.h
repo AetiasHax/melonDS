@@ -1,28 +1,49 @@
 #pragma once
 
 #include <unordered_set>
-#include <map>
+#include <unordered_map>
 #include <vector>
 #include <string>
 
 #include "dsd_melonds.h"
 
+struct TrackedReloc
+{
+    const AmbiguousRelocation *reloc;
+    int32_t offset;
+
+    TrackedReloc() : reloc(nullptr), offset(0) {}
+    TrackedReloc(const AmbiguousRelocation *reloc) : reloc(reloc), offset(0) {}
+    TrackedReloc(const AmbiguousRelocation *reloc, int32_t offset) : reloc(reloc), offset(offset) {}
+
+    void Clear()
+    {
+        reloc = nullptr;
+        offset = 0;
+    }
+
+    uint32_t To() const
+    {
+        return reloc ? reloc->to + offset : 0;
+    }
+};
+
 class RelocTracker
 {
 private:
-    const AmbiguousRelocation *registers[16];
-    std::map<uint32_t, const AmbiguousRelocation *> memory;
+    TrackedReloc registers[16];
+    std::unordered_map<uint32_t, TrackedReloc> memory;
 
 public:
-    void TrackRegister(uint32_t reg, const AmbiguousRelocation *reloc);
-    void TrackMemory(uint32_t addr, const AmbiguousRelocation *reloc);
+    void TrackRegister(uint32_t reg, TrackedReloc reloc);
+    void TrackMemory(uint32_t addr, TrackedReloc reloc);
 
     void ForgetRegister(uint32_t reg);
     void ForgetMemory(uint32_t addr);
     void ForgetRelocation(const AmbiguousRelocation *reloc);
 
-    const AmbiguousRelocation *GetRegister(uint32_t reg) const;
-    const AmbiguousRelocation *GetMemory(uint32_t addr) const;
+    TrackedReloc *GetRegister(uint32_t reg);
+    TrackedReloc *GetMemory(uint32_t addr);
 };
 
 class DSD
@@ -31,7 +52,7 @@ public:
     std::string configPath;
 
     rust::Vec<AmbiguousRelocation> ambiguousRelocations;
-    std::map<uint32_t, std::vector<const AmbiguousRelocation *>> ambiguousRelocationMap;
+    std::unordered_map<uint32_t, std::vector<const AmbiguousRelocation *>> ambiguousRelocationMap;
     RelocTracker relocTracker;
 
     OverlayLoadFunctions overlayLoadFunctions;
