@@ -112,7 +112,7 @@ fn disambiguate_relocation(
     let config = Config::from_file(&config_path)?;
 
     let relocs_path = if source_overlay >= 0 {
-        config_path.join(&config.overlays[source_overlay as usize].module.relocations)
+        config_dir.join(&config.overlays[source_overlay as usize].module.relocations)
     } else if source_autoload >= 0 {
         config_dir.join(&config.autoloads[source_autoload as usize].module.relocations)
     } else {
