@@ -22,6 +22,8 @@ mod ffi {
         pub to: u32,
         /// The source overlay ID, or `-1` if not applicable.
         pub source_overlay: i16,
+        /// The source autoload ID, or `-1` if not applicable.
+        pub source_autoload: i16,
         /// Two or more target overlay IDs that this relocation can point to.
         pub target_overlays: Vec<u16>,
         /// The kind of relocation.
@@ -34,9 +36,16 @@ mod ffi {
     }
 
     extern "Rust" {
-        fn dsd_get_ambiguous_relocations(config_path: &str) -> Result<Vec<AmbiguousRelocation>>;
+        fn dsd_get_ambiguous_relocations(config_path: &str) -> Vec<AmbiguousRelocation>;
+        fn dsd_disambiguate_relocation(
+            config_path: &str,
+            source_overlay: i16,
+            source_autoload: i16,
+            from: u32,
+            target_overlay: u16,
+        ) -> ();
 
-        fn dsd_get_overlay_load_functions(config_path: &str) -> Result<OverlayLoadFunctions>;
+        fn dsd_get_overlay_load_functions(config_path: &str) -> OverlayLoadFunctions;
 
         fn dsd_melonds_init() -> u32;
     }

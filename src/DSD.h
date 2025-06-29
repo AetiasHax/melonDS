@@ -3,6 +3,7 @@
 #include <unordered_set>
 #include <map>
 #include <vector>
+#include <string>
 
 #include "dsd_melonds.h"
 
@@ -18,6 +19,7 @@ public:
 
     void ForgetRegister(uint32_t reg);
     void ForgetMemory(uint32_t addr);
+    void ForgetRelocation(const AmbiguousRelocation *reloc);
 
     const AmbiguousRelocation *GetRegister(uint32_t reg) const;
     const AmbiguousRelocation *GetMemory(uint32_t addr) const;
@@ -26,6 +28,8 @@ public:
 class DSD
 {
 public:
+    std::string configPath;
+
     rust::Vec<AmbiguousRelocation> ambiguousRelocations;
     std::map<uint32_t, std::vector<const AmbiguousRelocation *>> ambiguousRelocationMap;
     RelocTracker relocTracker;
@@ -48,4 +52,6 @@ public:
     void MemoryStored(uint32_t addr, uint32_t reg, uint32_t value);
     void ProcessedData(uint32_t destReg, uint32_t srcReg, uint32_t value, int32_t offset);
     void ProcessedAdd(uint32_t destReg, uint32_t srcRegA, uint32_t valueA, uint32_t srcRegB, uint32_t valueB);
+
+    void RemoveRelocation(const AmbiguousRelocation *reloc);
 };

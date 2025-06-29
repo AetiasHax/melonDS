@@ -10,7 +10,8 @@ name = "dsd_melonds_rs"
 [dependencies]
 anyhow = "1.0"
 cxx = "1.0"
-ds-decomp = "0.9"
+# ds-decomp = "0.9"
+ds-decomp = { git = "https://github.com/AetiasHax/ds-decomp.git" }
 
 [build-dependencies]
 cxx-build = "1.0"

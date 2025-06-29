@@ -5,6 +5,8 @@
 
 void DSD::Init(const char *path)
 {
+    this->configPath = path;
+
     this->ambiguousRelocations = std::move(dsd_get_ambiguous_relocations(path));
     this->ambiguousRelocationMap.clear();
     for (const AmbiguousRelocation &reloc : this->ambiguousRelocations)
@@ -75,6 +77,11 @@ void DSD::RegisterDereferenced(uint32_t reg, uint32_t value)
 
         printf("Disambiguated relocation from %08x to %08x, correct overlay is %d\n",
                reloc->from, reloc->to, targetOverlay);
+
+        relocTracker.ForgetRelocation(reloc);
+        this->RemoveRelocation(reloc);
+        dsd_disambiguate_relocation(this->configPath.c_str(),
+                                    reloc->source_overlay, reloc->source_autoload, reloc->from, targetOverlay);
     }
 }
 
@@ -148,6 +155,31 @@ void DSD::ProcessedAdd(uint32_t destReg, uint32_t srcRegA, uint32_t valueA, uint
     //        destReg, srcRegA, valueA, srcRegB, valueB);
 }
 
+void DSD::RemoveRelocation(const AmbiguousRelocation *reloc)
+{
+    auto it = this->ambiguousRelocationMap.find(reloc->from);
+    if (it == this->ambiguousRelocationMap.end())
+    {
+        return;
+    }
+    printf("Relocations found\n");
+
+    auto &relocs = it->second;
+    auto relocIt = std::find(relocs.begin(), relocs.end(), reloc);
+    if (relocIt == relocs.end())
+    {
+        return;
+    }
+    printf("Relocation found\n");
+
+    relocs.erase(relocIt);
+    if (relocs.empty())
+    {
+        this->ambiguousRelocationMap.erase(it);
+        printf("Entry removed\n");
+    }
+}
+
 void RelocTracker::TrackRegister(uint32_t reg, const AmbiguousRelocation *reloc)
 {
     if (reg > 15)
@@ -181,6 +213,23 @@ void RelocTracker::ForgetMemory(uint32_t addr)
     if (it != this->memory.end())
     {
         this->memory.erase(it);
+    }
+}
+
+void RelocTracker::ForgetRelocation(const AmbiguousRelocation *reloc)
+{
+    for (uint32_t reg = 0; reg < 16; ++reg)
+    {
+        if (this->registers[reg] == reloc)
+            this->registers[reg] = nullptr;
+    }
+
+    for (auto it = this->memory.begin(); it != this->memory.end();)
+    {
+        if (it->second == reloc)
+            it = this->memory.erase(it);
+        else
+            ++it;
     }
 }
 
