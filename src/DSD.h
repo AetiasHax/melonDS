@@ -1,13 +1,35 @@
 #pragma once
 
 #include <unordered_set>
+#include <map>
+#include <vector>
 
 #include "dsd_melonds.h"
+
+class RelocTracker
+{
+private:
+    const AmbiguousRelocation *registers[16];
+    std::map<uint32_t, const AmbiguousRelocation *> memory;
+
+public:
+    void TrackRegister(uint32_t reg, const AmbiguousRelocation *reloc);
+    void TrackMemory(uint32_t addr, const AmbiguousRelocation *reloc);
+
+    void ForgetRegister(uint32_t reg);
+    void ForgetMemory(uint32_t addr);
+
+    const AmbiguousRelocation *GetRegister(uint32_t reg) const;
+    const AmbiguousRelocation *GetMemory(uint32_t addr) const;
+};
 
 class DSD
 {
 public:
     rust::Vec<AmbiguousRelocation> ambiguousRelocations;
+    std::map<uint32_t, std::vector<const AmbiguousRelocation *>> ambiguousRelocationMap;
+    RelocTracker relocTracker;
+
     OverlayLoadFunctions overlayLoadFunctions;
 
     std::unordered_set<uint32_t> loadedOverlays;
