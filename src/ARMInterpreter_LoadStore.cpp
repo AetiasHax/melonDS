@@ -18,6 +18,7 @@
 
 #include <stdio.h>
 #include "ARM.h"
+#include "NDS.h"
 
 
 namespace melonDS::ARMInterpreter
@@ -66,6 +67,7 @@ namespace melonDS::ARMInterpreter
     if (((cpu->CurInstr>>12) & 0xF) == 0xF) \
         storeval += 4; \
     cpu->DataWrite32(offset, storeval); \
+    cpu->NDS.dsd.MemoryStored(offset, (cpu->CurInstr>>12) & 0xF); \
     if (cpu->CurInstr & (1<<21)) cpu->R[(cpu->CurInstr>>16) & 0xF] = offset; \
     cpu->AddCycles_CD();
 
@@ -76,6 +78,7 @@ namespace melonDS::ARMInterpreter
     if (((cpu->CurInstr>>12) & 0xF) == 0xF) \
         storeval += 4; \
     cpu->DataWrite32(addr, storeval); \
+    cpu->NDS.dsd.MemoryStored(addr, (cpu->CurInstr>>12) & 0xF); \
     cpu->R[(cpu->CurInstr>>16) & 0xF] += offset; \
     cpu->AddCycles_CD();
 
@@ -93,6 +96,7 @@ namespace melonDS::ARMInterpreter
     cpu->AddCycles_CD();
 
 #define A_LDR \
+    cpu->NDS.dsd.RegisterDereferenced((cpu->CurInstr>>16) & 0xF); \
     offset += cpu->R[(cpu->CurInstr>>16) & 0xF]; \
     u32 val; cpu->DataRead32(offset, &val); \
     val = ROR(val, ((offset&0x3)<<3)); \
@@ -106,10 +110,12 @@ namespace melonDS::ARMInterpreter
     else \
     { \
         cpu->R[(cpu->CurInstr>>12) & 0xF] = val; \
-    }
+    } \
+    cpu->NDS.dsd.MemoryLoaded(offset, (cpu->CurInstr>>12) & 0xF, val);
 
 // TODO: user mode
 #define A_LDR_POST \
+    cpu->NDS.dsd.RegisterDereferenced((cpu->CurInstr>>16) & 0xF); \
     u32 addr = cpu->R[(cpu->CurInstr>>16) & 0xF]; \
     u32 val; cpu->DataRead32(addr, &val); \
     val = ROR(val, ((addr&0x3)<<3)); \
@@ -123,7 +129,8 @@ namespace melonDS::ARMInterpreter
     else \
     { \
         cpu->R[(cpu->CurInstr>>12) & 0xF] = val; \
-    }
+    } \
+    cpu->NDS.dsd.MemoryLoaded(addr, (cpu->CurInstr>>12) & 0xF, val);
 
 #define A_LDRB \
     offset += cpu->R[(cpu->CurInstr>>16) & 0xF]; \
@@ -239,22 +246,28 @@ A_IMPLEMENT_WB_LDRSTR(LDRB)
 
 #define A_LDRD \
     if (cpu->Num != 0) return; \
+    cpu->NDS.dsd.RegisterDereferenced((cpu->CurInstr>>16) & 0xF); \
     offset += cpu->R[(cpu->CurInstr>>16) & 0xF]; \
     if (cpu->CurInstr & (1<<21)) cpu->R[(cpu->CurInstr>>16) & 0xF] = offset; \
     u32 r = (cpu->CurInstr>>12) & 0xF; \
     if (r&1) { r--; printf("!! MISALIGNED LDRD %d\n", r+1); } \
     cpu->DataRead32 (offset  , &cpu->R[r  ]); \
+    cpu->NDS.dsd.MemoryLoaded(offset, r, cpu->R[r]); \
     cpu->DataRead32S(offset+4, &cpu->R[r+1]); \
+    cpu->NDS.dsd.MemoryLoaded(offset+4, r+1, cpu->R[r+1]); \
     cpu->AddCycles_CDI();
 
 #define A_LDRD_POST \
     if (cpu->Num != 0) return; \
+    cpu->NDS.dsd.RegisterDereferenced((cpu->CurInstr>>16) & 0xF); \
     u32 addr = cpu->R[(cpu->CurInstr>>16) & 0xF]; \
     cpu->R[(cpu->CurInstr>>16) & 0xF] += offset; \
     u32 r = (cpu->CurInstr>>12) & 0xF; \
     if (r&1) { r--; printf("!! MISALIGNED LDRD_POST %d\n", r+1); } \
     cpu->DataRead32 (addr  , &cpu->R[r  ]); \
+    cpu->NDS.dsd.MemoryLoaded(addr, r, cpu->R[r]); \
     cpu->DataRead32S(addr+4, &cpu->R[r+1]); \
+    cpu->NDS.dsd.MemoryLoaded(addr+4, r+1, cpu->R[r+1]); \
     cpu->AddCycles_CDI();
 
 #define A_STRD \
@@ -264,7 +277,9 @@ A_IMPLEMENT_WB_LDRSTR(LDRB)
     u32 r = (cpu->CurInstr>>12) & 0xF; \
     if (r&1) { r--; printf("!! MISALIGNED STRD %d\n", r+1); } \
     cpu->DataWrite32 (offset  , cpu->R[r  ]); \
+    cpu->NDS.dsd.MemoryStored(offset, r); \
     cpu->DataWrite32S(offset+4, cpu->R[r+1]); \
+    cpu->NDS.dsd.MemoryStored(offset+4, r+1); \
     cpu->AddCycles_CD();
 
 #define A_STRD_POST \
@@ -274,7 +289,9 @@ A_IMPLEMENT_WB_LDRSTR(LDRB)
     u32 r = (cpu->CurInstr>>12) & 0xF; \
     if (r&1) { r--; printf("!! MISALIGNED STRD_POST %d\n", r+1); } \
     cpu->DataWrite32 (addr  , cpu->R[r  ]); \
+    cpu->NDS.dsd.MemoryStored(addr, r); \
     cpu->DataWrite32S(addr+4, cpu->R[r+1]); \
+    cpu->NDS.dsd.MemoryStored(addr+4, r+1); \
     cpu->AddCycles_CD();
 
 #define A_LDRH \
@@ -360,15 +377,19 @@ A_IMPLEMENT_HD_LDRSTR(LDRSH)
 
 void A_SWP(ARM* cpu)
 {
+    cpu->NDS.dsd.RegisterDereferenced((cpu->CurInstr >> 16) & 0xF);
     u32 base = cpu->R[(cpu->CurInstr >> 16) & 0xF];
     u32 rm = cpu->R[cpu->CurInstr & 0xF];
-
+    
     u32 val;
     cpu->DataRead32(base, &val);
-    cpu->R[(cpu->CurInstr >> 12) & 0xF] = ROR(val, 8*(base&0x3));
+    u32 r = (cpu->CurInstr >> 12) & 0xF;
+    cpu->R[r] = ROR(val, 8*(base&0x3));
+    cpu->NDS.dsd.MemoryLoaded(base, r, cpu->R[r]);
 
     u32 numD = cpu->DataCycles;
     cpu->DataWrite32(base, rm);
+    cpu->NDS.dsd.MemoryStored(base, cpu->CurInstr & 0xF);
     cpu->DataCycles += numD;
 
     cpu->AddCycles_CDI();
@@ -393,6 +414,7 @@ void A_SWPB(ARM* cpu)
 void A_LDM(ARM* cpu)
 {
     u32 baseid = (cpu->CurInstr >> 16) & 0xF;
+    cpu->NDS.dsd.RegisterDereferenced(baseid);
     u32 base = cpu->R[baseid];
     u32 wbbase;
     u32 preinc = (cpu->CurInstr & (1<<24));
@@ -425,6 +447,7 @@ void A_LDM(ARM* cpu)
             if (preinc) base += 4;
             if (first) cpu->DataRead32 (base, &cpu->R[i]);
             else       cpu->DataRead32S(base, &cpu->R[i]);
+            cpu->NDS.dsd.MemoryLoaded(base, i, cpu->R[i]);
             first = false;
             if (!preinc) base += 4;
         }
@@ -436,6 +459,7 @@ void A_LDM(ARM* cpu)
         if (preinc) base += 4;
         if (first) cpu->DataRead32 (base, &pc);
         else       cpu->DataRead32S(base, &pc);
+        cpu->NDS.dsd.MemoryLoaded(base, 15, pc);
         if (!preinc) base += 4;
 
         if (cpu->Num == 1)
@@ -519,6 +543,7 @@ void A_STM(ARM* cpu)
             }
             else
                 first ? cpu->DataWrite32(base, cpu->R[i]) : cpu->DataWrite32S(base, cpu->R[i]);
+            cpu->NDS.dsd.MemoryStored(base, i);
 
             first = false;
 

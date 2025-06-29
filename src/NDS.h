@@ -553,7 +553,7 @@ protected:
     virtual void DoSavestateExtra(Savestate* file) {}
 
 public:
-    DSD *dsd;
+    DSD dsd;
 public:
     void InitDsd(const char *configPath);
 };

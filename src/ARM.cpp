@@ -657,9 +657,9 @@ void ARMv5::Execute()
         else
 #endif
         {        
-            if (NDS.dsd) {
+            if (NDS.dsd.initialized) {
                 uint32_t pc = R[15] - ((CPSR&0x20)?2:4);
-                auto &overlayFns = NDS.dsd->overlayLoadFunctions;
+                auto &overlayFns = NDS.dsd.overlayLoadFunctions;
 
                 if (pc == overlayFns.load) {
                     // FS_LoadOverlay
@@ -668,8 +668,7 @@ void ARMv5::Execute()
                     
                     if (processor == 0) {
                         // ARM9
-                        printf("Loading overlay %d\n", overlayId);
-                        NDS.dsd->OverlayLoaded(overlayId);
+                        NDS.dsd.OverlayLoaded(overlayId);
                     }
                 } else if (pc == overlayFns.unload) {
                     // FS_UnloadOverlay
@@ -678,18 +677,8 @@ void ARMv5::Execute()
                     
                     if (processor == 0) {
                         // ARM9
-                        printf("Unloading overlay %d\n", overlayId);
-                        NDS.dsd->OverlayUnloaded(overlayId);
+                        NDS.dsd.OverlayUnloaded(overlayId);
                     }
-                } else if (pc == 0x0202ff60 || pc == 0x0202ffa0) {
-                    printf("OverlayManager: ");
-                    for (uint32_t overlaySlot = 0; overlaySlot < 13; overlaySlot++) {
-                        int32_t id = ReadMem(0x027e0900 + overlaySlot * 4, 32);
-                        if (id >= 0) {
-                            printf("%d ", id);
-                        }
-                    }
-                    printf("\n");
                 }
             }
 
