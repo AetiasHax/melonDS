@@ -21,8 +21,9 @@ public:
     void OverlayUnloaded(uint32_t id);
     void PrintLoadedOverlays();
 
-    void RegisterDereferenced(uint32_t reg);
+    void RegisterDereferenced(uint32_t reg, uint32_t value);
     void MemoryLoaded(uint32_t addr, uint32_t reg, uint32_t value);
-    void MemoryStored(uint32_t addr, uint32_t reg);
-    void ProcessedData(uint32_t destReg, uint32_t srcReg, int32_t offset);
+    void MemoryStored(uint32_t addr, uint32_t reg, uint32_t value);
+    void ProcessedData(uint32_t destReg, uint32_t srcReg, uint32_t value, int32_t offset);
+    void ProcessedAdd(uint32_t destReg, uint32_t srcRegA, uint32_t valueA, uint32_t srcRegB, uint32_t valueB);
 };

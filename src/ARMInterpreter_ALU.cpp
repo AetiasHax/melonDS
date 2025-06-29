@@ -386,7 +386,7 @@ A_IMPLEMENT_ALU_OP(EOR,_S)
     { \
         cpu->R[(cpu->CurInstr>>12) & 0xF] = res; \
     } \
-    cpu->NDS.dsd.ProcessedData((cpu->CurInstr>>12) & 0xF, (cpu->CurInstr>>16) & 0xF, -(s32)b);
+    cpu->NDS.dsd.ProcessedData((cpu->CurInstr>>12) & 0xF, (cpu->CurInstr>>16) & 0xF, a, -(s32)b);
 
 #define A_SUB_S(c) \
     u32 a = cpu->R[(cpu->CurInstr>>16) & 0xF]; \
@@ -404,7 +404,7 @@ A_IMPLEMENT_ALU_OP(EOR,_S)
     { \
         cpu->R[(cpu->CurInstr>>12) & 0xF] = res; \
     } \
-    cpu->NDS.dsd.ProcessedData((cpu->CurInstr>>12) & 0xF, (cpu->CurInstr>>16) & 0xF, -(s32)b);
+    cpu->NDS.dsd.ProcessedData((cpu->CurInstr>>12) & 0xF, (cpu->CurInstr>>16) & 0xF, a, -(s32)b);
 
 A_IMPLEMENT_ALU_OP(SUB,)
 
@@ -423,7 +423,7 @@ A_IMPLEMENT_ALU_OP(SUB,)
     } \
     if (cpu->CurInstr & 0x0e000ff0 == 0x00000000) /* RSB by non-shifted register Rm */ \
     { \
-        cpu->NDS.dsd.ProcessedData((cpu->CurInstr>>12) & 0xF, cpu->CurInstr & 0xF, -(s32)a); \
+        cpu->NDS.dsd.ProcessedData((cpu->CurInstr>>12) & 0xF, cpu->CurInstr & 0xF, b, -(s32)a); \
     }
 
 #define A_RSB_S(c) \
@@ -444,7 +444,7 @@ A_IMPLEMENT_ALU_OP(SUB,)
     } \
     if (cpu->CurInstr & 0x0e000ff0 == 0x00000000) /* RSB by non-shifted register Rm */ \
     { \
-        cpu->NDS.dsd.ProcessedData((cpu->CurInstr>>12) & 0xF, cpu->CurInstr & 0xF, -(s32)a); \
+        cpu->NDS.dsd.ProcessedData((cpu->CurInstr>>12) & 0xF, cpu->CurInstr & 0xF, b, -(s32)a); \
     }
 
 A_IMPLEMENT_ALU_OP(RSB,)
@@ -462,10 +462,13 @@ A_IMPLEMENT_ALU_OP(RSB,)
     { \
         cpu->R[(cpu->CurInstr>>12) & 0xF] = res; \
     } \
-    cpu->NDS.dsd.ProcessedData((cpu->CurInstr>>12) & 0xF, (cpu->CurInstr>>16) & 0xF, (s32)b); \
     if (cpu->CurInstr & 0x0e000ff0 == 0x00000000) /* ADD by non-shifted register Rm */ \
     { \
-        cpu->NDS.dsd.ProcessedData((cpu->CurInstr>>12) & 0xF, cpu->CurInstr & 0xF, (s32)a); \
+        cpu->NDS.dsd.ProcessedAdd((cpu->CurInstr>>12) & 0xF, (cpu->CurInstr>>16) & 0xF, a, cpu->CurInstr & 0xF, b); \
+    } \
+    else \
+    { \
+        cpu->NDS.dsd.ProcessedData((cpu->CurInstr>>12) & 0xF, (cpu->CurInstr>>16) & 0xF, a, (s32)b); \
     }
 
 #define A_ADD_S(c) \
@@ -484,10 +487,13 @@ A_IMPLEMENT_ALU_OP(RSB,)
     { \
         cpu->R[(cpu->CurInstr>>12) & 0xF] = res; \
     } \
-    cpu->NDS.dsd.ProcessedData((cpu->CurInstr>>12) & 0xF, (cpu->CurInstr>>16) & 0xF, (s32)b); \
     if (cpu->CurInstr & 0x0e000ff0 == 0x00000000) /* ADD by non-shifted register Rm */ \
     { \
-        cpu->NDS.dsd.ProcessedData((cpu->CurInstr>>12) & 0xF, cpu->CurInstr & 0xF, (s32)a); \
+        cpu->NDS.dsd.ProcessedAdd((cpu->CurInstr>>12) & 0xF, (cpu->CurInstr>>16) & 0xF, a, cpu->CurInstr & 0xF, b); \
+    } \
+    else \
+    { \
+        cpu->NDS.dsd.ProcessedData((cpu->CurInstr>>12) & 0xF, (cpu->CurInstr>>16) & 0xF, a, (s32)b); \
     }
 
 A_IMPLEMENT_ALU_OP(ADD,)
@@ -683,7 +689,10 @@ A_IMPLEMENT_ALU_OP(ORR,_S)
     { \
         cpu->R[(cpu->CurInstr>>12) & 0xF] = b; \
     } \
-    cpu->NDS.dsd.ProcessedData((cpu->CurInstr>>12) & 0xF, cpu->CurInstr & 0xF, 0);
+    if (cpu->CurInstr & 0x0e000ff0 == 0x00000000) /* MOV by non-shifted register Rm */ \
+    { \
+        cpu->NDS.dsd.ProcessedData((cpu->CurInstr>>12) & 0xF, cpu->CurInstr & 0xF, b, 0); \
+    }
 
 #define A_MOV_S(c) \
     cpu->SetNZ(b & 0x80000000, \
@@ -697,7 +706,10 @@ A_IMPLEMENT_ALU_OP(ORR,_S)
     { \
         cpu->R[(cpu->CurInstr>>12) & 0xF] = b; \
     } \
-    cpu->NDS.dsd.ProcessedData((cpu->CurInstr>>12) & 0xF, cpu->CurInstr & 0xF, 0);
+    if (cpu->CurInstr & 0x0e000ff0 == 0x00000000) /* MOV by non-shifted register Rm */ \
+    { \
+        cpu->NDS.dsd.ProcessedData((cpu->CurInstr>>12) & 0xF, cpu->CurInstr & 0xF, b, 0); \
+    }
 
 A_IMPLEMENT_ALU_OP(MOV,_S)
 
@@ -1226,6 +1238,7 @@ void T_ADD_REG_(ARM* cpu)
     u32 b = cpu->R[(cpu->CurInstr >> 6) & 0x7];
     u32 res = a + b;
     cpu->R[cpu->CurInstr & 0x7] = res;
+    cpu->NDS.dsd.ProcessedAdd(cpu->CurInstr & 0x7, (cpu->CurInstr >> 3) & 0x7, a, (cpu->CurInstr >> 6) & 0x7, b);
     cpu->SetNZCV(res & 0x80000000,
                  !res,
                  CarryAdd(a, b),
@@ -1239,6 +1252,7 @@ void T_SUB_REG_(ARM* cpu)
     u32 b = cpu->R[(cpu->CurInstr >> 6) & 0x7];
     u32 res = a - b;
     cpu->R[cpu->CurInstr & 0x7] = res;
+    cpu->NDS.dsd.ProcessedData(cpu->CurInstr & 0x7, (cpu->CurInstr >> 3) & 0x7, a, -(s32)b);
     cpu->SetNZCV(res & 0x80000000,
                  !res,
                  CarrySub(a, b),
@@ -1252,6 +1266,7 @@ void T_ADD_IMM_(ARM* cpu)
     u32 b = (cpu->CurInstr >> 6) & 0x7;
     u32 res = a + b;
     cpu->R[cpu->CurInstr & 0x7] = res;
+    cpu->NDS.dsd.ProcessedData(cpu->CurInstr & 0x7, (cpu->CurInstr >> 3) & 0x7, a, b);
     cpu->SetNZCV(res & 0x80000000,
                  !res,
                  CarryAdd(a, b),
@@ -1265,6 +1280,7 @@ void T_SUB_IMM_(ARM* cpu)
     u32 b = (cpu->CurInstr >> 6) & 0x7;
     u32 res = a - b;
     cpu->R[cpu->CurInstr & 0x7] = res;
+    cpu->NDS.dsd.ProcessedData(cpu->CurInstr & 0x7, (cpu->CurInstr >> 3) & 0x7, a, -(s32)b);
     cpu->SetNZCV(res & 0x80000000,
                  !res,
                  CarrySub(a, b),
@@ -1276,6 +1292,7 @@ void T_MOV_IMM(ARM* cpu)
 {
     u32 b = cpu->CurInstr & 0xFF;
     cpu->R[(cpu->CurInstr >> 8) & 0x7] = b;
+    cpu->NDS.dsd.ProcessedData((cpu->CurInstr >> 8) & 0x7, cpu->CurInstr & 0x7, b, 0);
     cpu->SetNZ(0,
                !b);
     cpu->AddCycles_C();
@@ -1299,6 +1316,7 @@ void T_ADD_IMM(ARM* cpu)
     u32 b = cpu->CurInstr & 0xFF;
     u32 res = a + b;
     cpu->R[(cpu->CurInstr >> 8) & 0x7] = res;
+    cpu->NDS.dsd.ProcessedData((cpu->CurInstr >> 8) & 0x7, (cpu->CurInstr >> 8) & 0x7, a, b);
     cpu->SetNZCV(res & 0x80000000,
                  !res,
                  CarryAdd(a, b),
@@ -1312,6 +1330,7 @@ void T_SUB_IMM(ARM* cpu)
     u32 b = cpu->CurInstr & 0xFF;
     u32 res = a - b;
     cpu->R[(cpu->CurInstr >> 8) & 0x7] = res;
+    cpu->NDS.dsd.ProcessedData((cpu->CurInstr >> 8) & 0x7, (cpu->CurInstr >> 8) & 0x7, a, -(s32)b);
     cpu->SetNZCV(res & 0x80000000,
                  !res,
                  CarrySub(a, b),
@@ -1541,6 +1560,7 @@ void T_ADD_HIREG(ARM* cpu)
     {
         cpu->R[rd] = a + b;
     }
+    cpu->NDS.dsd.ProcessedAdd(rd, rd, a, rs, b);
 }
 
 void T_CMP_HIREG(ARM* cpu)
@@ -1574,6 +1594,7 @@ void T_MOV_HIREG(ARM* cpu)
     {
         cpu->R[rd] = cpu->R[rs];
     }
+    cpu->NDS.dsd.ProcessedData(rd, rs, cpu->R[rs], 0);
 
     // nocash-style debugging hook
     if ((cpu->CurInstr & 0xFFFF) == 0x46E4 &&     // mov r12, r12

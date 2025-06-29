@@ -44,7 +44,7 @@ void DSD::PrintLoadedOverlays()
     printf("\n");
 }
 
-void DSD::RegisterDereferenced(uint32_t reg)
+void DSD::RegisterDereferenced(uint32_t reg, uint32_t value)
 {
     // printf("Register %d dereferenced\n", reg);
 }
@@ -54,14 +54,20 @@ void DSD::MemoryLoaded(uint32_t addr, uint32_t reg, uint32_t value)
     // printf("Memory loaded at %08x into register %d with value %08x\n", addr, reg, value);
 }
 
-void DSD::MemoryStored(uint32_t addr, uint32_t reg)
+void DSD::MemoryStored(uint32_t addr, uint32_t reg, uint32_t value)
 {
     // printf("Memory stored at %08x from register %d\n", addr, reg);
 }
 
-void DSD::ProcessedData(uint32_t destReg, uint32_t srcReg, int32_t offset)
+void DSD::ProcessedData(uint32_t destReg, uint32_t srcReg, uint32_t value, int32_t offset)
 {
     // printf("Processed data: destReg %d, srcReg %d, offset %d\n", destReg, srcReg, offset);
+}
+
+void DSD::ProcessedAdd(uint32_t destReg, uint32_t srcRegA, uint32_t valueA, uint32_t srcRegB, uint32_t valueB)
+{
+    // printf("Processed add: destReg %d, srcRegA %d (value %08x), srcRegB %d (value %08x)\n",
+    //        destReg, srcRegA, valueA, srcRegB, valueB);
 }
 
 void melonDS::NDS::InitDsd(const char *configPath)

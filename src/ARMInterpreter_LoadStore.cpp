@@ -64,10 +64,10 @@ namespace melonDS::ARMInterpreter
 #define A_STR \
     offset += cpu->R[(cpu->CurInstr>>16) & 0xF]; \
     u32 storeval = cpu->R[(cpu->CurInstr>>12) & 0xF]; \
+    cpu->NDS.dsd.MemoryStored(offset, (cpu->CurInstr>>12) & 0xF, storeval); \
     if (((cpu->CurInstr>>12) & 0xF) == 0xF) \
         storeval += 4; \
     cpu->DataWrite32(offset, storeval); \
-    cpu->NDS.dsd.MemoryStored(offset, (cpu->CurInstr>>12) & 0xF); \
     if (cpu->CurInstr & (1<<21)) cpu->R[(cpu->CurInstr>>16) & 0xF] = offset; \
     cpu->AddCycles_CD();
 
@@ -75,10 +75,10 @@ namespace melonDS::ARMInterpreter
 #define A_STR_POST \
     u32 addr = cpu->R[(cpu->CurInstr>>16) & 0xF]; \
     u32 storeval = cpu->R[(cpu->CurInstr>>12) & 0xF]; \
+    cpu->NDS.dsd.MemoryStored(addr, (cpu->CurInstr>>12) & 0xF, storeval); \
     if (((cpu->CurInstr>>12) & 0xF) == 0xF) \
         storeval += 4; \
     cpu->DataWrite32(addr, storeval); \
-    cpu->NDS.dsd.MemoryStored(addr, (cpu->CurInstr>>12) & 0xF); \
     cpu->R[(cpu->CurInstr>>16) & 0xF] += offset; \
     cpu->AddCycles_CD();
 
@@ -96,8 +96,9 @@ namespace melonDS::ARMInterpreter
     cpu->AddCycles_CD();
 
 #define A_LDR \
-    cpu->NDS.dsd.RegisterDereferenced((cpu->CurInstr>>16) & 0xF); \
-    offset += cpu->R[(cpu->CurInstr>>16) & 0xF]; \
+    u32 base = cpu->R[(cpu->CurInstr>>16) & 0xF]; \
+    offset += base; \
+    cpu->NDS.dsd.RegisterDereferenced((cpu->CurInstr>>16) & 0xF, base); \
     u32 val; cpu->DataRead32(offset, &val); \
     val = ROR(val, ((offset&0x3)<<3)); \
     if (cpu->CurInstr & (1<<21)) cpu->R[(cpu->CurInstr>>16) & 0xF] = offset; \
@@ -115,8 +116,8 @@ namespace melonDS::ARMInterpreter
 
 // TODO: user mode
 #define A_LDR_POST \
-    cpu->NDS.dsd.RegisterDereferenced((cpu->CurInstr>>16) & 0xF); \
     u32 addr = cpu->R[(cpu->CurInstr>>16) & 0xF]; \
+    cpu->NDS.dsd.RegisterDereferenced((cpu->CurInstr>>16) & 0xF, addr); \
     u32 val; cpu->DataRead32(addr, &val); \
     val = ROR(val, ((addr&0x3)<<3)); \
     cpu->R[(cpu->CurInstr>>16) & 0xF] += offset; \
@@ -246,8 +247,9 @@ A_IMPLEMENT_WB_LDRSTR(LDRB)
 
 #define A_LDRD \
     if (cpu->Num != 0) return; \
-    cpu->NDS.dsd.RegisterDereferenced((cpu->CurInstr>>16) & 0xF); \
-    offset += cpu->R[(cpu->CurInstr>>16) & 0xF]; \
+    u32 base = cpu->R[(cpu->CurInstr>>16) & 0xF]; \
+    offset += base; \
+    cpu->NDS.dsd.RegisterDereferenced((cpu->CurInstr>>16) & 0xF, base); \
     if (cpu->CurInstr & (1<<21)) cpu->R[(cpu->CurInstr>>16) & 0xF] = offset; \
     u32 r = (cpu->CurInstr>>12) & 0xF; \
     if (r&1) { r--; printf("!! MISALIGNED LDRD %d\n", r+1); } \
@@ -259,8 +261,8 @@ A_IMPLEMENT_WB_LDRSTR(LDRB)
 
 #define A_LDRD_POST \
     if (cpu->Num != 0) return; \
-    cpu->NDS.dsd.RegisterDereferenced((cpu->CurInstr>>16) & 0xF); \
     u32 addr = cpu->R[(cpu->CurInstr>>16) & 0xF]; \
+    cpu->NDS.dsd.RegisterDereferenced((cpu->CurInstr>>16) & 0xF, addr); \
     cpu->R[(cpu->CurInstr>>16) & 0xF] += offset; \
     u32 r = (cpu->CurInstr>>12) & 0xF; \
     if (r&1) { r--; printf("!! MISALIGNED LDRD_POST %d\n", r+1); } \
@@ -277,9 +279,9 @@ A_IMPLEMENT_WB_LDRSTR(LDRB)
     u32 r = (cpu->CurInstr>>12) & 0xF; \
     if (r&1) { r--; printf("!! MISALIGNED STRD %d\n", r+1); } \
     cpu->DataWrite32 (offset  , cpu->R[r  ]); \
-    cpu->NDS.dsd.MemoryStored(offset, r); \
+    cpu->NDS.dsd.MemoryStored(offset, r, cpu->R[r]); \
     cpu->DataWrite32S(offset+4, cpu->R[r+1]); \
-    cpu->NDS.dsd.MemoryStored(offset+4, r+1); \
+    cpu->NDS.dsd.MemoryStored(offset+4, r+1, cpu->R[r+1]); \
     cpu->AddCycles_CD();
 
 #define A_STRD_POST \
@@ -289,9 +291,9 @@ A_IMPLEMENT_WB_LDRSTR(LDRB)
     u32 r = (cpu->CurInstr>>12) & 0xF; \
     if (r&1) { r--; printf("!! MISALIGNED STRD_POST %d\n", r+1); } \
     cpu->DataWrite32 (addr  , cpu->R[r  ]); \
-    cpu->NDS.dsd.MemoryStored(addr, r); \
+    cpu->NDS.dsd.MemoryStored(addr, r, cpu->R[r]); \
     cpu->DataWrite32S(addr+4, cpu->R[r+1]); \
-    cpu->NDS.dsd.MemoryStored(addr+4, r+1); \
+    cpu->NDS.dsd.MemoryStored(addr+4, r+1, cpu->R[r+1]); \
     cpu->AddCycles_CD();
 
 #define A_LDRH \
@@ -377,8 +379,8 @@ A_IMPLEMENT_HD_LDRSTR(LDRSH)
 
 void A_SWP(ARM* cpu)
 {
-    cpu->NDS.dsd.RegisterDereferenced((cpu->CurInstr >> 16) & 0xF);
     u32 base = cpu->R[(cpu->CurInstr >> 16) & 0xF];
+    cpu->NDS.dsd.RegisterDereferenced((cpu->CurInstr >> 16) & 0xF, base);
     u32 rm = cpu->R[cpu->CurInstr & 0xF];
     
     u32 val;
@@ -389,7 +391,7 @@ void A_SWP(ARM* cpu)
 
     u32 numD = cpu->DataCycles;
     cpu->DataWrite32(base, rm);
-    cpu->NDS.dsd.MemoryStored(base, cpu->CurInstr & 0xF);
+    cpu->NDS.dsd.MemoryStored(base, cpu->CurInstr & 0xF, rm);
     cpu->DataCycles += numD;
 
     cpu->AddCycles_CDI();
@@ -414,8 +416,8 @@ void A_SWPB(ARM* cpu)
 void A_LDM(ARM* cpu)
 {
     u32 baseid = (cpu->CurInstr >> 16) & 0xF;
-    cpu->NDS.dsd.RegisterDereferenced(baseid);
     u32 base = cpu->R[baseid];
+    cpu->NDS.dsd.RegisterDereferenced(baseid, base);
     u32 oldbase = base;
     u32 wbbase;
     u32 preinc = (cpu->CurInstr & (1<<24));
@@ -481,14 +483,14 @@ void A_LDM(ARM* cpu)
                 if ((!(rlist & ~(1 << baseid))) || (rlist & ~((2 << baseid) - 1)))
                 {
                     cpu->R[baseid] = wbbase;
-                    cpu->NDS.dsd.ProcessedData(baseid, baseid, (s32) wbbase - (s32) oldbase);
+                    cpu->NDS.dsd.ProcessedData(baseid, baseid, oldbase, (s32) wbbase - (s32) oldbase);
                 }
             }
         }
         else
         {
             cpu->R[baseid] = wbbase;
-            cpu->NDS.dsd.ProcessedData(baseid, baseid, (s32) wbbase - (s32) oldbase);
+            cpu->NDS.dsd.ProcessedData(baseid, baseid, oldbase, (s32) wbbase - (s32) oldbase);
         }
     }
 
@@ -544,13 +546,21 @@ void A_STM(ARM* cpu)
             if (i == baseid && !isbanked)
             {
                 if ((cpu->Num == 0) || (!(cpu->CurInstr & ((1<<i)-1))))
+                {
                     first ? cpu->DataWrite32(base, oldbase) : cpu->DataWrite32S(base, oldbase);
+                    cpu->NDS.dsd.MemoryStored(base, baseid, oldbase);
+                }
                 else
+                {
                     first ? cpu->DataWrite32(base, base) : cpu->DataWrite32S(base, base); // checkme
+                    cpu->NDS.dsd.MemoryStored(base, baseid, base);
+                }
             }
             else
+            {
                 first ? cpu->DataWrite32(base, cpu->R[i]) : cpu->DataWrite32S(base, cpu->R[i]);
-            cpu->NDS.dsd.MemoryStored(base, i);
+                cpu->NDS.dsd.MemoryStored(base, i, cpu->R[i]);
+            }
 
             first = false;
 
@@ -564,7 +574,7 @@ void A_STM(ARM* cpu)
     if ((cpu->CurInstr & (1<<23)) && (cpu->CurInstr & (1<<21)))
     {
         cpu->R[baseid] = base;
-        cpu->NDS.dsd.ProcessedData(baseid, baseid, (s32) base - (s32) oldbase);
+        cpu->NDS.dsd.ProcessedData(baseid, baseid, oldbase, (s32) base - (s32) oldbase);
     }
 
     cpu->AddCycles_CD();
@@ -581,6 +591,7 @@ void T_LDR_PCREL(ARM* cpu)
 {
     u32 addr = (cpu->R[15] & ~0x2) + ((cpu->CurInstr & 0xFF) << 2);
     cpu->DataRead32(addr, &cpu->R[(cpu->CurInstr >> 8) & 0x7]);
+    cpu->NDS.dsd.MemoryLoaded(addr, (cpu->CurInstr >> 8) & 0x7, cpu->R[(cpu->CurInstr >> 8) & 0x7]);
 
     cpu->AddCycles_CDI();
 }
@@ -590,6 +601,7 @@ void T_STR_REG(ARM* cpu)
 {
     u32 addr = cpu->R[(cpu->CurInstr >> 3) & 0x7] + cpu->R[(cpu->CurInstr >> 6) & 0x7];
     cpu->DataWrite32(addr, cpu->R[cpu->CurInstr & 0x7]);
+    cpu->NDS.dsd.MemoryStored(addr, cpu->CurInstr & 0x7, cpu->R[cpu->CurInstr & 0x7]);
 
     cpu->AddCycles_CD();
 }
@@ -604,11 +616,14 @@ void T_STRB_REG(ARM* cpu)
 
 void T_LDR_REG(ARM* cpu)
 {
-    u32 addr = cpu->R[(cpu->CurInstr >> 3) & 0x7] + cpu->R[(cpu->CurInstr >> 6) & 0x7];
+    u32 base = cpu->R[(cpu->CurInstr >> 3) & 0x7];
+    u32 addr = base + cpu->R[(cpu->CurInstr >> 6) & 0x7];
+    cpu->NDS.dsd.RegisterDereferenced((cpu->CurInstr >> 3) & 0x7, base);
 
     u32 val;
     cpu->DataRead32(addr, &val);
     cpu->R[cpu->CurInstr & 0x7] = ROR(val, 8*(addr&0x3));
+    cpu->NDS.dsd.MemoryLoaded(addr, cpu->CurInstr & 0x7, cpu->R[cpu->CurInstr & 0x7]);
 
     cpu->AddCycles_CDI();
 }
@@ -663,17 +678,21 @@ void T_STR_IMM(ARM* cpu)
     offset += cpu->R[(cpu->CurInstr >> 3) & 0x7];
 
     cpu->DataWrite32(offset, cpu->R[cpu->CurInstr & 0x7]);
+    cpu->NDS.dsd.MemoryStored(offset, cpu->CurInstr & 0x7, cpu->R[cpu->CurInstr & 0x7]);
     cpu->AddCycles_CD();
 }
 
 void T_LDR_IMM(ARM* cpu)
 {
     u32 offset = (cpu->CurInstr >> 4) & 0x7C;
-    offset += cpu->R[(cpu->CurInstr >> 3) & 0x7];
+    u32 base = cpu->R[(cpu->CurInstr >> 3) & 0x7];
+    offset += base;
+    cpu->NDS.dsd.RegisterDereferenced((cpu->CurInstr >> 3) & 0x7, base);
 
     u32 val;
     cpu->DataRead32(offset, &val);
     cpu->R[cpu->CurInstr & 0x7] = ROR(val, 8*(offset&0x3));
+    cpu->NDS.dsd.MemoryLoaded(offset, cpu->CurInstr & 0x7, cpu->R[cpu->CurInstr & 0x7]);
     cpu->AddCycles_CDI();
 }
 
@@ -721,6 +740,7 @@ void T_STR_SPREL(ARM* cpu)
     offset += cpu->R[13];
 
     cpu->DataWrite32(offset, cpu->R[(cpu->CurInstr >> 8) & 0x7]);
+    cpu->NDS.dsd.MemoryStored(offset, (cpu->CurInstr >> 8) & 0x7, cpu->R[(cpu->CurInstr >> 8) & 0x7]);
     cpu->AddCycles_CD();
 }
 
@@ -730,6 +750,7 @@ void T_LDR_SPREL(ARM* cpu)
     offset += cpu->R[13];
 
     cpu->DataRead32(offset, &cpu->R[(cpu->CurInstr >> 8) & 0x7]);
+    cpu->NDS.dsd.MemoryLoaded(offset, (cpu->CurInstr >> 8) & 0x7, cpu->R[(cpu->CurInstr >> 8) & 0x7]);
     cpu->AddCycles_CDI();
 }
 
@@ -758,6 +779,7 @@ void T_PUSH(ARM* cpu)
         {
             if (first) cpu->DataWrite32 (base, cpu->R[i]);
             else       cpu->DataWrite32S(base, cpu->R[i]);
+            cpu->NDS.dsd.MemoryStored(base, i, cpu->R[i]);
             first = false;
             base += 4;
         }
@@ -775,6 +797,7 @@ void T_PUSH(ARM* cpu)
 void T_POP(ARM* cpu)
 {
     u32 base = cpu->R[13];
+    u32 oldbase = base;
     bool first = true;
 
     for (int i = 0; i < 8; i++)
@@ -783,6 +806,7 @@ void T_POP(ARM* cpu)
         {
             if (first) cpu->DataRead32 (base, &cpu->R[i]);
             else       cpu->DataRead32S(base, &cpu->R[i]);
+            cpu->NDS.dsd.MemoryLoaded(base, i, cpu->R[i]);
             first = false;
             base += 4;
         }
@@ -793,6 +817,7 @@ void T_POP(ARM* cpu)
         u32 pc;
         if (first) cpu->DataRead32 (base, &pc);
         else       cpu->DataRead32S(base, &pc);
+        cpu->NDS.dsd.MemoryLoaded(base, 15, pc);
         if (cpu->Num==1) pc |= 0x1;
         cpu->JumpTo(pc);
         base += 4;
@@ -804,7 +829,9 @@ void T_POP(ARM* cpu)
 
 void T_STMIA(ARM* cpu)
 {
-    u32 base = cpu->R[(cpu->CurInstr >> 8) & 0x7];
+    u32 baseid = (cpu->CurInstr >> 8) & 0x7;
+    u32 base = cpu->R[baseid];
+    u32 oldbase = base;
     bool first = true;
 
     for (int i = 0; i < 8; i++)
@@ -813,19 +840,24 @@ void T_STMIA(ARM* cpu)
         {
             if (first) cpu->DataWrite32 (base, cpu->R[i]);
             else       cpu->DataWrite32S(base, cpu->R[i]);
+            cpu->NDS.dsd.MemoryStored(base, i, cpu->R[i]);
             first = false;
             base += 4;
         }
     }
 
     // TODO: check "Rb included in Rlist" case
-    cpu->R[(cpu->CurInstr >> 8) & 0x7] = base;
+    cpu->R[baseid] = base;
+    cpu->NDS.dsd.ProcessedData(baseid, baseid, oldbase, (s32)base - (s32)oldbase);
     cpu->AddCycles_CD();
 }
 
 void T_LDMIA(ARM* cpu)
 {
-    u32 base = cpu->R[(cpu->CurInstr >> 8) & 0x7];
+    u32 baseid = (cpu->CurInstr >> 8) & 0x7;
+    u32 base = cpu->R[baseid];
+    cpu->NDS.dsd.RegisterDereferenced(baseid, base);
+    u32 oldbase = base;
     bool first = true;
 
     for (int i = 0; i < 8; i++)
@@ -834,13 +866,17 @@ void T_LDMIA(ARM* cpu)
         {
             if (first) cpu->DataRead32 (base, &cpu->R[i]);
             else       cpu->DataRead32S(base, &cpu->R[i]);
+            cpu->NDS.dsd.MemoryLoaded(base, i, cpu->R[i]);
             first = false;
             base += 4;
         }
     }
 
-    if (!(cpu->CurInstr & (1<<((cpu->CurInstr >> 8) & 0x7))))
-        cpu->R[(cpu->CurInstr >> 8) & 0x7] = base;
+    if (!(cpu->CurInstr & (1<<(baseid))))
+    {
+        cpu->R[baseid] = base;
+        cpu->NDS.dsd.ProcessedData(baseid, baseid, oldbase, (s32)base - (s32)oldbase);
+    }
 
     cpu->AddCycles_CDI();
 }
