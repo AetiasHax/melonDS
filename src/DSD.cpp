@@ -70,22 +70,17 @@ void DSD::RegisterDereferenced(uint32_t reg, uint32_t value)
         return;
     }
 
-    for (uint16_t targetOverlay : reloc->reloc->target_overlays)
+    this->DisambiguateRelocation(reloc->reloc);
+}
+
+void DSD::FunctionCalled(uint32_t addr, uint32_t pc)
+{
+    // printf("Function called at %08x with PC %08x\n", addr, pc);
+
+    const AmbiguousRelocation *reloc = FindRelocation(addr, pc);
+    if (reloc != nullptr)
     {
-        if (this->loadedOverlays.find(targetOverlay) == this->loadedOverlays.end())
-        {
-            continue; // Skip if the target overlay is not loaded
-        }
-
-        const AmbiguousRelocation *relocPtr = reloc->reloc;
-
-        relocTracker.ForgetRelocation(relocPtr);
-        this->RemoveRelocation(relocPtr);
-        dsd_disambiguate_relocation(this->configPath.c_str(), relocPtr->source_overlay, relocPtr->source_autoload,
-                                    relocPtr->from, targetOverlay);
-
-        printf("Disambiguated relocation from %08x to %08x, correct overlay is %d. %zu remaining\n",
-               relocPtr->from, relocPtr->to, targetOverlay, this->ambiguousRelocationMap.size());
+        this->DisambiguateRelocation(reloc);
     }
 }
 
@@ -93,40 +88,27 @@ void DSD::MemoryLoaded(uint32_t addr, uint32_t reg, uint32_t value)
 {
     // printf("Memory loaded at %08x into register %d with value %08x\n", addr, reg, value);
 
-    const auto &relocsIt = this->ambiguousRelocationMap.find(addr);
-    if (relocsIt != this->ambiguousRelocationMap.end())
+    const AmbiguousRelocation *reloc = FindRelocation(addr, value);
+    if (reloc != nullptr)
     {
-        const std::vector<const AmbiguousRelocation *> &relocs = relocsIt->second;
-        for (const AmbiguousRelocation *reloc : relocs)
-        {
-            if (reloc->source_overlay != -1 && this->loadedOverlays.find(reloc->source_overlay) == this->loadedOverlays.end())
-            {
-                continue; // Skip if the source overlay is not loaded
-            }
-            if (value != reloc->to)
-            {
-                continue; // Skip if the value does not match the relocation target
-            }
-            // printf("Ambiguous relocation loaded into r%d: %08x -> %08x (source overlay %d)\n", reg, reloc->from, reloc->to, reloc->source_overlay);
+        // printf("Ambiguous relocation loaded into r%d: %08x -> %08x (source overlay %d)\n", reg, reloc->from, reloc->to, reloc->source_overlay);
 
-            relocTracker.TrackRegister(reg, TrackedReloc(reloc));
-        }
-        return;
+        relocTracker.TrackRegister(reg, TrackedReloc(reloc));
     }
 
-    auto reloc = relocTracker.GetMemory(addr);
-    if (reloc == nullptr)
+    TrackedReloc *trackedReloc = relocTracker.GetMemory(addr);
+    if (trackedReloc == nullptr)
     {
         return;
     }
 
-    if (reloc->To() != value)
+    if (trackedReloc->To() != value)
     {
         relocTracker.ForgetMemory(addr);
         return;
     }
 
-    relocTracker.TrackRegister(reg, *reloc);
+    relocTracker.TrackRegister(reg, *trackedReloc);
 }
 
 void DSD::MemoryStored(uint32_t addr, uint32_t reg, uint32_t value)
@@ -222,6 +204,52 @@ void DSD::RemoveRelocation(const AmbiguousRelocation *reloc)
         this->ambiguousRelocationMap.erase(it);
         // printf("Entry removed\n");
     }
+}
+
+const AmbiguousRelocation *DSD::FindRelocation(uint32_t from, uint32_t to)
+{
+    const auto &relocsIt = this->ambiguousRelocationMap.find(from);
+    if (relocsIt != this->ambiguousRelocationMap.end())
+    {
+        const std::vector<const AmbiguousRelocation *> &relocs = relocsIt->second;
+        for (const AmbiguousRelocation *reloc : relocs)
+        {
+            if (reloc->source_overlay != -1 && this->loadedOverlays.find(reloc->source_overlay) == this->loadedOverlays.end())
+            {
+                continue; // Skip if the source overlay is not loaded
+            }
+            if (to != reloc->to)
+            {
+                continue; // Skip if the value does not match the relocation target
+            }
+
+            return reloc;
+        }
+    }
+    return nullptr;
+}
+
+void DSD::DisambiguateRelocation(const AmbiguousRelocation *reloc)
+{
+    for (uint16_t targetOverlay : reloc->target_overlays)
+    {
+        if (this->loadedOverlays.find(targetOverlay) == this->loadedOverlays.end())
+        {
+            continue; // Skip if the target overlay is not loaded
+        }
+
+        relocTracker.ForgetRelocation(reloc);
+        this->RemoveRelocation(reloc);
+        dsd_disambiguate_relocation(this->configPath.c_str(), reloc->source_overlay, reloc->source_autoload,
+                                    reloc->from, targetOverlay);
+
+        printf("Disambiguated relocation from %08x to %08x, correct overlay is %d. %zu remaining\n",
+               reloc->from, reloc->to, targetOverlay, this->ambiguousRelocationMap.size());
+        return;
+    }
+
+    printf("Disambiguation FAILED for relocation from %08x to %08x, no matching overlay found.\n",
+           reloc->from, reloc->to);
 }
 
 void RelocTracker::TrackRegister(uint32_t reg, TrackedReloc reloc)

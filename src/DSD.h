@@ -69,10 +69,13 @@ public:
     void PrintLoadedOverlays();
 
     void RegisterDereferenced(uint32_t reg, uint32_t value);
+    void FunctionCalled(uint32_t addr, uint32_t pc);
     void MemoryLoaded(uint32_t addr, uint32_t reg, uint32_t value);
     void MemoryStored(uint32_t addr, uint32_t reg, uint32_t value);
     void ProcessedData(uint32_t destReg, uint32_t srcReg, uint32_t value, int32_t offset);
     void ProcessedAdd(uint32_t destReg, uint32_t srcRegA, uint32_t valueA, uint32_t srcRegB, uint32_t valueB);
 
     void RemoveRelocation(const AmbiguousRelocation *reloc);
+    const AmbiguousRelocation *FindRelocation(uint32_t from, uint32_t to);
+    void DisambiguateRelocation(const AmbiguousRelocation *reloc);
 };

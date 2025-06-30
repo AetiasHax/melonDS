@@ -18,6 +18,7 @@
 
 #include "ARM.h"
 #include "Platform.h"
+#include "NDS.h"
 
 namespace melonDS::ARMInterpreter
 {
@@ -35,7 +36,9 @@ void A_BL(ARM* cpu)
 {
     s32 offset = (s32)(cpu->CurInstr << 8) >> 6;
     cpu->R[14] = cpu->R[15] - 4;
-    cpu->JumpTo(cpu->R[15] + offset);
+    u32 dest = cpu->R[15] + offset;
+    cpu->NDS.dsd.FunctionCalled(dest, cpu->R[15]);
+    cpu->JumpTo(dest);
 }
 
 void A_BLX_IMM(ARM* cpu)
@@ -43,18 +46,24 @@ void A_BLX_IMM(ARM* cpu)
     s32 offset = (s32)(cpu->CurInstr << 8) >> 6;
     if (cpu->CurInstr & 0x01000000) offset += 2;
     cpu->R[14] = cpu->R[15] - 4;
-    cpu->JumpTo(cpu->R[15] + offset + 1);
+    u32 dest = cpu->R[15] + offset + 1;
+    cpu->NDS.dsd.FunctionCalled(dest, cpu->R[15]);
+    cpu->JumpTo(dest);
 }
 
 void A_BX(ARM* cpu)
 {
-    cpu->JumpTo(cpu->R[cpu->CurInstr & 0xF]);
+    u32 rm = cpu->CurInstr & 0xF;
+    cpu->NDS.dsd.RegisterDereferenced(rm, cpu->R[rm]);
+    cpu->JumpTo(cpu->R[rm]);
 }
 
 void A_BLX_REG(ARM* cpu)
 {
     u32 lr = cpu->R[15] - 4;
-    cpu->JumpTo(cpu->R[cpu->CurInstr & 0xF]);
+    u32 rm = cpu->CurInstr & 0xF;
+    cpu->NDS.dsd.RegisterDereferenced(rm, cpu->R[rm]);
+    cpu->JumpTo(cpu->R[rm]);
     cpu->R[14] = lr;
 }
 
@@ -73,7 +82,9 @@ void T_BCOND(ARM* cpu)
 
 void T_BX(ARM* cpu)
 {
-    cpu->JumpTo(cpu->R[(cpu->CurInstr >> 3) & 0xF]);
+    u32 rm = (cpu->CurInstr >> 3) & 0xF;
+    cpu->NDS.dsd.RegisterDereferenced(rm, cpu->R[rm]);
+    cpu->JumpTo(cpu->R[rm]);
 }
 
 void T_BLX_REG(ARM* cpu)
@@ -85,7 +96,9 @@ void T_BLX_REG(ARM* cpu)
     }
 
     u32 lr = cpu->R[15] - 1;
-    cpu->JumpTo(cpu->R[(cpu->CurInstr >> 3) & 0xF]);
+    u32 rm = (cpu->CurInstr >> 3) & 0xF;
+    cpu->NDS.dsd.RegisterDereferenced(rm, cpu->R[rm]);
+    cpu->JumpTo(cpu->R[rm]);
     cpu->R[14] = lr;
 }
 
@@ -111,6 +124,7 @@ void T_BL_LONG_2(ARM* cpu)
     if ((cpu->Num==1) || (cpu->CurInstr & (1<<12)))
         pc |= 1;
 
+    cpu->NDS.dsd.FunctionCalled(pc, cpu->R[15]);
     cpu->JumpTo(pc);
 }
 
