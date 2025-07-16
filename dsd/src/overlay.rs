@@ -1,5 +1,3 @@
-use anyhow::Result;
-
 use crate::OverlayLoadFunctions;
 
 pub fn dsd_get_overlay_load_functions(config_path: &str) -> OverlayLoadFunctions {

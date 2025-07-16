@@ -26,7 +26,7 @@ pub fn dsd_get_ambiguous_relocations(config_path: &str) -> Vec<AmbiguousRelocati
     match get_ambiguous_relocations(config_path) {
         Ok(relocs) => relocs,
         Err(e) => {
-            eprintln!("Failed to get ambiguous relocations: {}", e);
+            eprintln!("Failed to get ambiguous relocations: {e}");
             vec![]
         }
     }
@@ -96,7 +96,7 @@ pub fn dsd_disambiguate_relocation(
     target_overlay: u16,
 ) {
     if let Err(e) = disambiguate_relocation(config_path, source_overlay, source_autoload, from, target_overlay) {
-        eprintln!("Failed to disambiguate relocation: {}", e);
+        eprintln!("Failed to disambiguate relocation: {e}");
     }
 }
 
