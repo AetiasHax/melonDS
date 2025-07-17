@@ -283,8 +283,9 @@ dependencies = [
 
 [[package]]
 name = "ds-decomp"
-version = "0.9.0"
-source = "git+https://github.com/AetiasHax/ds-decomp.git#c84b01a74a2258128a4708e79fe3a27d182f25c3"
+version = "0.10.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "8e90c3d8bff12962f8e90164afba69eef0f0cab5949cf492a61a5000b674f53c"
 dependencies = [
  "bytemuck",
  "ds-rom",
