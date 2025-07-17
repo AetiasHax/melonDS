@@ -13,6 +13,11 @@ void DSD::Init(const char *path) {
     }
 
     this->overlayLoadFunctions = dsd_get_overlay_load_functions(path);
+    this->overlayInfos         = dsd_get_overlay_info(path);
+
+    for (const OverlayInfo &info : this->overlayInfos) {
+        printf("Overlay %d: %08x - %08x\n", info.id, info.start_address, info.end_address);
+    }
 
     printf("Loaded %zu ambiguous relocations\n", this->ambiguousRelocations.size());
 
@@ -196,18 +201,19 @@ const AmbiguousRelocation *DSD::FindRelocation(uint32_t from, uint32_t to) {
 }
 
 void DSD::DisambiguateRelocation(const AmbiguousRelocation *reloc) {
-    for (uint16_t targetOverlay : reloc->target_overlays) {
-        if (this->loadedOverlays.find(targetOverlay) == this->loadedOverlays.end()) {
-            continue; // Skip if the target overlay is not loaded
+    for (uint16_t loadedOverlay : this->loadedOverlays) {
+        const OverlayInfo &info = this->overlayInfos[loadedOverlay];
+        if (reloc->to < info.start_address || reloc->to >= info.end_address) {
+            continue;
         }
 
         relocTracker.ForgetRelocation(reloc);
         this->RemoveRelocation(reloc);
         dsd_disambiguate_relocation(this->configPath.c_str(), reloc->source_overlay, reloc->source_autoload, reloc->from,
-                                    targetOverlay);
+                                    loadedOverlay);
 
         printf("Disambiguated relocation from %08x to %08x, correct overlay is %d. %zu remaining\n", reloc->from, reloc->to,
-               targetOverlay, this->ambiguousRelocationMap.size());
+               loadedOverlay, this->ambiguousRelocationMap.size());
         return;
     }
 

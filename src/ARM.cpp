@@ -665,6 +665,7 @@ void ARMv5::Execute()
                     // FS_LoadOverlay
                     uint32_t processor = R[0];
                     uint32_t overlayId = R[1];
+                    // printf("ARM9: FS_LoadOverlay %d %d\n", processor, overlayId);
                     
                     if (processor == 0) {
                         // ARM9
@@ -674,6 +675,7 @@ void ARMv5::Execute()
                     // FS_UnloadOverlay
                     uint32_t processor = R[0];
                     uint32_t overlayId = R[1];
+                    // printf("ARM9: FS_UnloadOverlay %d %d\n", processor, overlayId);
                     
                     if (processor == 0) {
                         // ARM9

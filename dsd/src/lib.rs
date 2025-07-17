@@ -35,6 +35,12 @@ mod ffi {
         pub unload: u32,
     }
 
+    struct OverlayInfo {
+        pub id: u16,
+        pub start_address: u32,
+        pub end_address: u32,
+    }
+
     extern "Rust" {
         fn dsd_get_ambiguous_relocations(config_path: &str) -> Vec<AmbiguousRelocation>;
         fn dsd_disambiguate_relocation(
@@ -46,6 +52,7 @@ mod ffi {
         ) -> ();
 
         fn dsd_get_overlay_load_functions(config_path: &str) -> OverlayLoadFunctions;
+        fn dsd_get_overlay_info(config_path: &str) -> Vec<OverlayInfo>;
 
         fn dsd_melonds_init() -> u32;
     }

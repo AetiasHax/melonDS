@@ -1,35 +1,37 @@
 #pragma once
 
-#include <unordered_set>
-#include <unordered_map>
-#include <vector>
 #include <string>
+#include <unordered_map>
+#include <unordered_set>
+#include <vector>
 
 #include "dsd_melonds.h"
 
-struct TrackedReloc
-{
+struct TrackedReloc {
     const AmbiguousRelocation *reloc;
     int32_t offset;
 
-    TrackedReloc() : reloc(nullptr), offset(0) {}
-    TrackedReloc(const AmbiguousRelocation *reloc) : reloc(reloc), offset(0) {}
-    TrackedReloc(const AmbiguousRelocation *reloc, int32_t offset) : reloc(reloc), offset(offset) {}
+    TrackedReloc() :
+        reloc(nullptr),
+        offset(0) {}
+    TrackedReloc(const AmbiguousRelocation *reloc) :
+        reloc(reloc),
+        offset(0) {}
+    TrackedReloc(const AmbiguousRelocation *reloc, int32_t offset) :
+        reloc(reloc),
+        offset(offset) {}
 
-    void Clear()
-    {
-        reloc = nullptr;
+    void Clear() {
+        reloc  = nullptr;
         offset = 0;
     }
 
-    uint32_t To() const
-    {
+    uint32_t To() const {
         return reloc ? reloc->to + offset : 0;
     }
 };
 
-class RelocTracker
-{
+class RelocTracker {
 private:
     TrackedReloc registers[16];
     std::unordered_map<uint32_t, TrackedReloc> memory;
@@ -46,8 +48,7 @@ public:
     TrackedReloc *GetMemory(uint32_t addr);
 };
 
-class DSD
-{
+class DSD {
 public:
     std::string configPath;
 
@@ -56,6 +57,7 @@ public:
     RelocTracker relocTracker;
 
     OverlayLoadFunctions overlayLoadFunctions;
+    rust::Vec<OverlayInfo> overlayInfos;
 
     std::unordered_set<uint32_t> loadedOverlays;
 
