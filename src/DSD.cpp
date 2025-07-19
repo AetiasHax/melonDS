@@ -4,6 +4,8 @@
 #include "NDS.h"
 
 void DSD::Init(const char *path) {
+    this->Reset();
+
     this->configPath = path;
 
     this->ambiguousRelocations = std::move(dsd_get_ambiguous_relocations(path));
@@ -35,6 +37,18 @@ void DSD::Init(const char *path) {
     this->initialized = true;
 }
 
+void DSD::Destroy() {
+    printf("Destroying DSD\n");
+    this->configPath.clear();
+    this->ambiguousRelocations.clear();
+    this->ambiguousRelocationMap.clear();
+    this->relocTracker.Reset();
+    this->overlayLoadFunctions = OverlayLoadFunctions();
+    this->overlayInfos.clear();
+    this->loadedOverlays.clear();
+    this->initialized = false;
+}
+
 void DSD::OverlayLoaded(uint32_t id) {
     this->loadedOverlays.insert(id);
     // PrintLoadedOverlays();
@@ -51,6 +65,12 @@ void DSD::PrintLoadedOverlays() {
         printf("%d ", id);
     }
     printf("\n");
+}
+
+void DSD::Reset() {
+    printf("Resetting DSD\n");
+    this->loadedOverlays.clear();
+    this->relocTracker.Reset();
 }
 
 void DSD::RegisterDereferenced(uint32_t reg, uint32_t value) {
@@ -218,6 +238,13 @@ void DSD::DisambiguateRelocation(const AmbiguousRelocation *reloc) {
     }
 
     printf("Disambiguation FAILED for relocation from %08x to %08x, no matching overlay found.\n", reloc->from, reloc->to);
+}
+
+void RelocTracker::Reset() {
+    for (TrackedReloc &reg : this->registers) {
+        reg.Clear();
+    }
+    this->memory.clear();
 }
 
 void RelocTracker::TrackRegister(uint32_t reg, TrackedReloc reloc) {

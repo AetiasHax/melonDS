@@ -541,6 +541,7 @@ void NDS::Reset()
     SPI.Reset();
     RTC.Reset();
     Wifi.Reset();
+    dsd.Reset();
 }
 
 void NDS::Start()
@@ -742,6 +743,8 @@ void NDS::SetNDSCart(std::unique_ptr<NDSCart::CartCommon>&& cart)
     // The existing cart will always be ejected;
     // if cart is null, then that's equivalent to ejecting a cart
     // without inserting a new one.
+
+    dsd.Destroy();
 }
 
 void NDS::SetNDSSave(const u8* savedata, u32 savelen)

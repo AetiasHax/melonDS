@@ -37,6 +37,8 @@ private:
     std::unordered_map<uint32_t, TrackedReloc> memory;
 
 public:
+    void Reset();
+
     void TrackRegister(uint32_t reg, TrackedReloc reloc);
     void TrackMemory(uint32_t addr, TrackedReloc reloc);
 
@@ -65,10 +67,12 @@ public:
 
 public:
     void Init(const char *configPath);
+    void Destroy();
 
     void OverlayLoaded(uint32_t id);
     void OverlayUnloaded(uint32_t id);
     void PrintLoadedOverlays();
+    void Reset();
 
     void RegisterDereferenced(uint32_t reg, uint32_t value);
     void FunctionCalled(uint32_t addr, uint32_t pc);
